@@ -1,4 +1,3 @@
-
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 import matplotlib.pyplot as plt
@@ -8,9 +7,14 @@ from sklearn.model_selection import RandomizedSearchCV, GridSearchCV
 
 from sklearn.metrics import accuracy_score
 
+import sklearn.pipeline as skl_pl
+import sklearn.preprocessing as skl_pp
+
 
 import pandas as pd
 df = pd.read_csv('training_data_ht2025.csv')
+
+
 
 
 df["increase_stock"] = df["increase_stock"].map({
@@ -60,7 +64,7 @@ X = df[["weather_severity", "rush_hour_severity", "time_off", "season"]]
 
 Y = df["increase_stock"]
 
-random_states = range(0,10)  
+random_states = range(0,1)  
 
 
 all_results = pd.DataFrame() 
@@ -74,11 +78,16 @@ for rs in random_states:
     k_amt = 71
     k_range = range(1,k_amt+1, 2)
 
-    knn = KNeighborsClassifier(weights='distance')
-    param_grid = {'n_neighbors': k_range}
-
+  
+    pipe = skl_pl.Pipeline([
+        ('scaler', skl_pp.StandardScaler()),
+        ('knn', KNeighborsClassifier())
+    ])
+    param_grid = {'knn__n_neighbors': k_range,
+                  'knn__class_weight:'
+                  }
     grid_search = GridSearchCV(
-        knn, param_grid, cv=5, scoring='f1', n_jobs=-1
+        pipe, param_grid, cv=5, scoring='f1', n_jobs=-1
     )
     grid_search.fit(X_train, y_train)
 
@@ -88,8 +97,6 @@ for rs in random_states:
 
     all_results = pd.concat([all_results, results], ignore_index=True)
     from sklearn.metrics import classification_report, confusion_matrix
-
-    grid_search.fit(X_train, y_train)
   
     best_knn = grid_search.best_estimator_
     y_pred = best_knn.predict(X_test)
@@ -101,10 +108,9 @@ for rs in random_states:
 # Average the scores across all random_states
 # ------------------------------------------------------------------------------------
 avg_scores = (
-    all_results.groupby("param_n_neighbors")
+    all_results.groupby("param_knn__n_neighbors")
     .agg(
         mean_accuracy=("mean_test_score", "mean"),
-        std_accuracy=("mean_test_score", "std"),
     )
     .reset_index()
 )
