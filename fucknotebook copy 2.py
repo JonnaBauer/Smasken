@@ -74,11 +74,11 @@ for rs in random_states:
     k_amt = 71
     k_range = range(1,k_amt+1, 2)
 
-    knn = KNeighborsClassifier()
+    knn = KNeighborsClassifier(weights='distance')
     param_grid = {'n_neighbors': k_range}
 
     grid_search = GridSearchCV(
-        knn, param_grid, cv=5, scoring='accuracy', n_jobs=-1
+        knn, param_grid, cv=5, scoring='f1', n_jobs=-1
     )
     grid_search.fit(X_train, y_train)
 
@@ -87,6 +87,14 @@ for rs in random_states:
     results["random_state"] = rs
 
     all_results = pd.concat([all_results, results], ignore_index=True)
+    from sklearn.metrics import classification_report, confusion_matrix
+
+    grid_search.fit(X_train, y_train)
+  
+    best_knn = grid_search.best_estimator_
+    y_pred = best_knn.predict(X_test)
+    print(classification_report(y_test, y_pred))
+    print(confusion_matrix(y_test, y_pred))
 
 
 # ------------------------------------------------------------------------------------
