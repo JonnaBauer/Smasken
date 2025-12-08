@@ -66,55 +66,71 @@ Y = df["increase_stock"]
 
 random_states = range(0,1)  
 
-
+rs = 2
 all_results = pd.DataFrame() 
-for rs in random_states:
-    print(f"Running GridSearch for random_state = {rs}")
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, Y, test_size=0.2, random_state=rs
-    )
-    
-    k_amt = 71
-    k_range = range(1,k_amt+1, 2)
+print(f"Running GridSearch for random_state = {rs}")
 
-  
-    pipe = skl_pl.Pipeline([
-        ('scaler', skl_pp.StandardScaler()),
-        ('knn', KNeighborsClassifier())
-    ])
-    param_grid = {'knn__n_neighbors': k_range,
-                  'knn__class_weight:'
-                  }
-    grid_search = GridSearchCV(
-        pipe, param_grid, cv=5, scoring='f1', n_jobs=-1
-    )
-    grid_search.fit(X_train, y_train)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, Y, test_size=0.5, random_state=rs
+)
+# Train - Validation - Test Split
+import sklearn.model_selection as skl_ms
+
+X_train, X_val_test, y_train, y_val_test = skl_ms.train_test_split(
+    X,
+    Y,
+    test_size=0.4,
+    random_state=2,
+    stratify=df['increase_stock']
+)
+X_val, X_test, y_val, y_test = skl_ms.train_test_split(
+    X_val_test,
+    y_val_test,
+    test_size=0.5,
+    random_state=2,
+    stratify=y_val_test
+)
+k_amt = 71
+k_range = range(1,k_amt+1, 2)
 
 
-    results = pd.DataFrame(grid_search.cv_results_)
-    results["random_state"] = rs
+pipe = skl_pl.Pipeline([
+    ('scaler', skl_pp.StandardScaler()),
+    ('knn', KNeighborsClassifier())
+])
+param_grid = {'knn__n_neighbors': k_range,
+                'knn__weights': ['uniform', 'distance']}
+grid_search = GridSearchCV(
+    pipe, param_grid, cv=5, scoring='f1', n_jobs=-1
+)
+grid_search.fit(X_train, y_train)
 
-    all_results = pd.concat([all_results, results], ignore_index=True)
-    from sklearn.metrics import classification_report, confusion_matrix
-  
-    best_knn = grid_search.best_estimator_
-    y_pred = best_knn.predict(X_test)
-    print(classification_report(y_test, y_pred))
-    print(confusion_matrix(y_test, y_pred))
+
+results = pd.DataFrame(grid_search.cv_results_)
+results["random_state"] = rs
+
+all_results = pd.concat([all_results, results], ignore_index=True)
+from sklearn.metrics import classification_report, confusion_matrix, f1_score
+
+best_knn = grid_search.best_estimator_
+y_pred = best_knn.predict(X_test)
+print(classification_report(y_test, y_pred))
+print(confusion_matrix(y_test, y_pred))
+print("F1 Score (for positive class):", f1_score(y_test, y_pred))
+print("Macro F1 Score:", f1_score(y_test, y_pred, average='macro'))
 
 
 # ------------------------------------------------------------------------------------
 # Average the scores across all random_states
 # ------------------------------------------------------------------------------------
 avg_scores = (
-    all_results.groupby("param_knn__n_neighbors")
+    all_results.groupby(["param_knn__n_neighbors", "param_knn__weights"])
     .agg(
         mean_accuracy=("mean_test_score", "mean"),
     )
     .reset_index()
 )
-
 
 final_ranking = avg_scores.sort_values(
     by="mean_accuracy",
