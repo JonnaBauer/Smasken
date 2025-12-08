@@ -57,10 +57,21 @@ def season(month):
 
 df["season"] = df["month"].apply(season)
 
+df["month_sin"] = np.sin(2 * np.pi * df["month"] / 12)
+df["month_cos"] = np.cos(2 * np.pi * df["month"] / 12)
+
+df["hour_sin"] = np.sin(2 * np.pi * df["hour_of_day"] / 24)
+df["hour_cos"] = np.cos(2 * np.pi * df["hour_of_day"] / 24)
+
+df["temp_extreme"] = ((df["temp"] < 0) | (df["temp"] > 30)).astype(int)  
+df["precip_intensity"] = df["precip"] ** 2
+
+df["day_type"] = np.where(df["holiday"] == 1, 2, np.where(df["weekday"] == 0, 1, 0))  # 0=weekday, 1=weekend, 2=holiday
+
 ######################
 
 
-X = df[["weather_severity", "rush_hour_severity", "time_off", "season"]]
+X = df[["weather_severity", "rush_hour_severity", "hour_sin", "hour_cos", "time_off", "month_sin", "month_cos"]]
 
 Y = df["increase_stock"]
 
@@ -81,16 +92,18 @@ X_train, X_val_test, y_train, y_val_test = skl_ms.train_test_split(
     X,
     Y,
     test_size=0.4,
-    random_state=2,
+    random_state=rs,
     stratify=df['increase_stock']
 )
 X_val, X_test, y_val, y_test = skl_ms.train_test_split(
     X_val_test,
     y_val_test,
     test_size=0.5,
-    random_state=2,
+    random_state=rs,
     stratify=y_val_test
 )
+
+
 k_amt = 71
 k_range = range(1,k_amt+1, 2)
 
@@ -100,7 +113,8 @@ pipe = skl_pl.Pipeline([
     ('knn', KNeighborsClassifier())
 ])
 param_grid = {'knn__n_neighbors': k_range,
-                'knn__weights': ['uniform', 'distance']}
+                'knn__weights': ['uniform', 'distance'],
+                'knn__metric': ['euclidean','manhattan','minkowski']}
 grid_search = GridSearchCV(
     pipe, param_grid, cv=5, scoring='f1', n_jobs=-1
 )
@@ -125,7 +139,7 @@ print("Macro F1 Score:", f1_score(y_test, y_pred, average='macro'))
 # Average the scores across all random_states
 # ------------------------------------------------------------------------------------
 avg_scores = (
-    all_results.groupby(["param_knn__n_neighbors", "param_knn__weights"])
+    all_results.groupby(["param_knn__n_neighbors", "param_knn__weights", "param_knn__metric"])
     .agg(
         mean_accuracy=("mean_test_score", "mean"),
     )
