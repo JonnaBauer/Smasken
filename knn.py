@@ -13,7 +13,6 @@ import sklearn.preprocessing as skl_pp
 
 import pandas as pd
 from features import load_data, add_features, get_X_y
-from sklearn.model_selection import train_test_split
 
 df = load_data("training_data_ht2025.csv")
 df = add_features(df)
@@ -44,7 +43,7 @@ pipe = skl_pl.Pipeline([
 ])
 param_grid = {'knn__n_neighbors': k_range,
                 'knn__weights': ['uniform', 'distance'],
-                'knn__metric': ['euclidean','manhattan','minkowski']}
+                'knn__metric': ['euclidean','manhattan','chebyshev']}
 grid_search = GridSearchCV(
     pipe, param_grid, cv=5, scoring='f1', n_jobs=-1
 )
