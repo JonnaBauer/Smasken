@@ -20,7 +20,7 @@ df = add_features(df)
 
 X, y = get_X_y(df)
 
-
+beta_score = 2
 rs = 2
 
 X_train, X_val_test, y_train, y_val_test = train_test_split(
@@ -42,7 +42,7 @@ pipe = skl_pl.Pipeline([
     ('scaler', skl_pp.StandardScaler()),
     ('knn', KNeighborsClassifier())
 ])
-f2_scorer = skl_m.make_scorer(skl_m.fbeta_score, beta=2)
+f2_scorer = skl_m.make_scorer(skl_m.fbeta_score, beta=beta_score)
 param_grid = {'knn__n_neighbors': k_range,
                 'knn__weights': ['uniform', 'distance'],
                 'knn__metric': ['euclidean','manhattan','chebyshev']}
@@ -61,6 +61,7 @@ from sklearn.metrics import classification_report, confusion_matrix, f1_score
 best_knn = grid_search.best_estimator_
 y_pred = best_knn.predict(X_test)
 print(classification_report(y_test, y_pred))
+
 print(confusion_matrix(y_test, y_pred))
 print("F1 Score (for positive class):", f1_score(y_test, y_pred))
 print("Macro F1 Score:", f1_score(y_test, y_pred, average='macro'))
@@ -87,4 +88,4 @@ final_ranking = avg_scores.sort_values(
 print("\n===== FINAL AVERAGED RANKING ACROSS RANDOM STATES =====\n")
 print(final_ranking)
 
-print(skl_m.fbeta_score(y_test, y_pred, beta=2))
+print(skl_m.fbeta_score(y_test, y_pred, beta=beta_score))
