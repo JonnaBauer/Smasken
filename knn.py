@@ -5,7 +5,7 @@ import seaborn as sns
 import numpy as np
 from sklearn.model_selection import RandomizedSearchCV, GridSearchCV
 
-from sklearn.metrics import accuracy_score
+import sklearn.metrics as skl_m
 
 import sklearn.pipeline as skl_pl
 import sklearn.preprocessing as skl_pp
@@ -13,6 +13,7 @@ import sklearn.preprocessing as skl_pp
 
 import pandas as pd
 from features import load_data, add_features, get_X_y
+
 
 df = load_data("training_data_ht2025.csv")
 df = add_features(df)
@@ -41,11 +42,12 @@ pipe = skl_pl.Pipeline([
     ('scaler', skl_pp.StandardScaler()),
     ('knn', KNeighborsClassifier())
 ])
+f2_scorer = skl_m.make_scorer(skl_m.fbeta_score, beta=2)
 param_grid = {'knn__n_neighbors': k_range,
                 'knn__weights': ['uniform', 'distance'],
                 'knn__metric': ['euclidean','manhattan','chebyshev']}
 grid_search = GridSearchCV(
-    pipe, param_grid, cv=5, scoring='f1', n_jobs=-1
+    pipe, param_grid, cv=5, scoring=f2_scorer, n_jobs=-1
 )
 grid_search.fit(X_train, y_train)
 
@@ -84,3 +86,5 @@ final_ranking = avg_scores.sort_values(
 
 print("\n===== FINAL AVERAGED RANKING ACROSS RANDOM STATES =====\n")
 print(final_ranking)
+
+print(skl_m.fbeta_score(y_test, y_pred, beta=2))
