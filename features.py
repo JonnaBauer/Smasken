@@ -13,7 +13,6 @@ def add_features(df):
 
     df["weather_severity"] = (
         df["precip"] * 2
-        + df["snow"] * 3
         + (df["temp"] < 5).astype(int) * 1
         + (df["windspeed"] > 15).astype(int) * 2
         + (df["visibility"] < 5).astype(int) * 2
